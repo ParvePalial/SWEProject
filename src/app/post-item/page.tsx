@@ -2,22 +2,31 @@ import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import PostItemForm from './PostItemForm';
 
-export default async function PostItemPage() {
+export default async function PostItemPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const session = await getSession();
 
   if (!session) {
     redirect('/login');
   }
 
+  const params = await searchParams;
+  const initialType = params.type === 'FOUND' ? 'FOUND' : 'LOST';
+
   return (
-    <div className="container" style={{ paddingTop: '2rem' }}>
-      <h1 style={{ textAlign: 'center' }}>Report an Item</h1>
-      <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2rem' }}>
-        Please provide the details of the item you have lost or found.
-      </p>
-      <div className="glass-panel" style={{ maxWidth: '600px', margin: '0 auto', padding: '2rem' }}>
-        <PostItemForm />
-      </div>
+    <div className="page">
+      <main className="form-page" style={{ maxWidth: '640px' }}>
+        <div className="form-card">
+          <div className="form-header">
+            <div className="form-icon">📝</div>
+            <h2>{initialType === 'FOUND' ? 'Register Found Item' : 'Report Lost Item'}</h2>
+            <p>Please provide detailed information to help us {initialType === 'FOUND' ? 'find the owner' : 'recover your item'}.</p>
+          </div>
+          
+          <div className="form-body">
+            <PostItemForm initialType={initialType} />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

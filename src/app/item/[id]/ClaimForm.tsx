@@ -7,6 +7,7 @@ export default function ClaimForm({ itemId }: { itemId: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -37,32 +38,60 @@ export default function ClaimForm({ itemId }: { itemId: string }) {
     }
   };
 
-  if (success) {
+  if (!isOpen) {
     return (
-      <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', borderRadius: '0.5rem' }}>
-        <strong>Claim Submitted Successfully!</strong>
-        <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>Your claim is pending review by the administrator. You can check the status on your dashboard.</p>
-      </div>
+      <button onClick={() => setIsOpen(true)} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+        Claim This Item
+      </button>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      {error && <div className="form-error" style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '0.5rem' }}>{error}</div>}
-
-      <div className="form-group">
-        <label className="form-label">Proof of Ownership</label>
-        <textarea 
-          name="proofDetails" 
-          required 
-          rows={5} 
-          placeholder="Please describe specific details only the owner would know, or upload proof images via an external link..."
-        ></textarea>
+    <div className="modal-overlay">
+      <div className="modal">
+        <div className="modal-header">
+          <h3>Claim Item</h3>
+          <button onClick={() => setIsOpen(false)} className="modal-close">&times;</button>
+        </div>
+        
+        {success ? (
+          <div className="modal-body">
+            <div className="alert alert-success">
+              <strong>Claim Submitted Successfully!</strong>
+              <p style={{ marginTop: '5px' }}>Your claim is pending review by the administrator. You can check the status on your dashboard.</p>
+            </div>
+            <div className="modal-footer" style={{ borderTop: 'none', padding: 0, marginTop: '20px' }}>
+               <button onClick={() => setIsOpen(false)} className="btn btn-outline-dark">Close</button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="modal-body">
+              {error && <div className="alert alert-error">{error}</div>}
+              
+              <p style={{ fontSize: '14px', color: 'var(--text-mid)', marginBottom: '16px' }}>
+                To claim this item, please provide proof of ownership. This can include specific details only the owner would know, serial numbers, or a link to a photo of the item.
+              </p>
+              
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Proof Details <span>*</span></label>
+                <textarea 
+                  name="proofDetails" 
+                  className="form-control"
+                  required 
+                  placeholder="Describe specific identifying marks, serial numbers, or context of how you lost it..."
+                ></textarea>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" onClick={() => setIsOpen(false)} className="btn btn-outline-dark">Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={loading}>
+                {loading ? 'Submitting...' : 'Submit Claim'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
-
-      <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
-        {loading ? 'Submitting...' : 'Submit Claim'}
-      </button>
-    </form>
+    </div>
   );
 }

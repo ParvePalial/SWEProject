@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function PostItemForm() {
+export default function PostItemForm({ initialType = 'LOST' }: { initialType?: 'LOST' | 'FOUND' }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -67,54 +67,74 @@ export default function PostItemForm() {
 
   return (
     <form onSubmit={handleSubmit}>
-      {error && <div className="form-error" style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '0.5rem' }}>{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
 
       <div className="form-group">
-        <label className="form-label">Report Type</label>
-        <select name="type" required defaultValue="LOST">
+        <label className="form-label">Report Type <span>*</span></label>
+        <select name="type" className="form-control" required defaultValue={initialType}>
           <option value="LOST">I Lost an Item</option>
           <option value="FOUND">I Found an Item</option>
         </select>
       </div>
 
-      <div className="form-group">
-        <label className="form-label">Item Name</label>
-        <input type="text" name="name" required placeholder="e.g. Blue Backpack" />
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Item Name <span>*</span></label>
+          <input type="text" name="name" className="form-control" required placeholder="e.g. Blue Backpack" />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Category <span>*</span></label>
+          <select name="category" className="form-control" required defaultValue="">
+            <option value="" disabled>Select Category</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Documents">Documents/ID</option>
+            <option value="Accessories">Accessories</option>
+            <option value="Stationery">Stationery</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Date (Lost or Found) <span>*</span></label>
+          <input type="date" name="date" className="form-control" required />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Location <span>*</span></label>
+          <input type="text" name="location" className="form-control" required placeholder="e.g. Main Library" />
+        </div>
       </div>
 
       <div className="form-group">
-        <label className="form-label">Category</label>
-        <select name="category" required defaultValue="">
-          <option value="" disabled>Select Category</option>
-          <option value="Electronics">Electronics</option>
-          <option value="Documents">Documents/ID</option>
-          <option value="Accessories">Accessories</option>
-          <option value="Stationery">Stationery</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">Date (Lost or Found)</label>
-        <input type="date" name="date" required />
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">Location</label>
-        <input type="text" name="location" required placeholder="e.g. Main Library, 2nd Floor" />
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">Description</label>
-        <textarea name="description" required rows={4} placeholder="Provide details like color, brand, specific marks..."></textarea>
+        <label className="form-label">Description <span>*</span></label>
+        <textarea name="description" className="form-control" required rows={4} placeholder="Provide details like color, brand, specific marks..."></textarea>
       </div>
 
       <div className="form-group">
         <label className="form-label">Upload Image (Optional)</label>
-        <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} style={{ padding: '0.5rem' }} />
+        <div className={`upload-area ${imageFile ? 'has-file' : ''}`} onClick={() => document.getElementById('imageUpload')?.click()}>
+          <div className="upload-icon">{imageFile ? '✅' : '📷'}</div>
+          <div className="upload-text">
+            {imageFile ? (
+              <span>{imageFile.name}</span>
+            ) : (
+              <><span>Click to upload</span> or drag and drop an image of the item</>
+            )}
+          </div>
+          <input 
+            type="file" 
+            id="imageUpload"
+            accept="image/*" 
+            onChange={(e) => setImageFile(e.target.files?.[0] || null)} 
+            style={{ display: 'none' }} 
+          />
+        </div>
       </div>
 
-      <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
+      <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }} disabled={loading}>
         {loading ? 'Submitting...' : 'Submit Report'}
       </button>
     </form>

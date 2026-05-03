@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { queryRun } from '@/lib/sqlite';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
@@ -13,19 +13,14 @@ async function checkAdmin() {
 
 export async function approveItem(itemId: string) {
   await checkAdmin();
-  await prisma.item.update({
-    where: { id: itemId },
-    data: { status: 'PUBLISHED' }
-  });
+  await queryRun('UPDATE Item SET status = ? WHERE id = ?', ['PUBLISHED', itemId]);
   revalidatePath('/admin');
   revalidatePath('/');
 }
 
 export async function rejectItem(itemId: string) {
   await checkAdmin();
-  await prisma.item.delete({
-    where: { id: itemId }
-  });
+  await queryRun('DELETE FROM Item WHERE id = ?', [itemId]);
   revalidatePath('/admin');
 }
 
@@ -33,40 +28,25 @@ export async function approveClaim(claimId: string, itemId: string) {
   await checkAdmin();
   
   // Update claim
-  await prisma.claim.update({
-    where: { id: claimId },
-    data: { status: 'APPROVED' }
-  });
+  await queryRun('UPDATE Claim SET status = ? WHERE id = ?', ['APPROVED', claimId]);
 
   // Reject all other claims for this item
-  await prisma.claim.updateMany({
-    where: { itemId, id: { not: claimId } },
-    data: { status: 'REJECTED' }
-  });
+  await queryRun('UPDATE Claim SET status = ? WHERE itemId = ? AND id != ?', ['REJECTED', itemId, claimId]);
 
   // Mark item as returned
-  await prisma.item.update({
-    where: { id: itemId },
-    data: { status: 'RETURNED' }
-  });
+  await queryRun('UPDATE Item SET status = ? WHERE id = ?', ['RETURNED', itemId]);
 
   revalidatePath('/admin');
 }
 
 export async function rejectClaim(claimId: string) {
   await checkAdmin();
-  await prisma.claim.update({
-    where: { id: claimId },
-    data: { status: 'REJECTED' }
-  });
+  await queryRun('UPDATE Claim SET status = ? WHERE id = ?', ['REJECTED', claimId]);
   revalidatePath('/admin');
 }
 
 export async function reactivateUser(userId: string) {
   await checkAdmin();
-  await prisma.user.update({
-    where: { id: userId },
-    data: { isSuspended: false, loginAttempts: 0 }
-  });
+  await queryRun('UPDATE User SET isSuspended = 0, loginAttempts = 0 WHERE id = ?', [userId]);
   revalidatePath('/admin');
 }

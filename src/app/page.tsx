@@ -1,6 +1,5 @@
+import { queryAll } from '@/lib/sqlite';
 import Link from 'next/link';
-
-export const dynamic = 'force-dynamic';
 
 export default async function Home({
   searchParams,
@@ -12,114 +11,146 @@ export default async function Home({
   const type = params.type || '';
   const category = params.category || '';
 
-  const queryParams = new URLSearchParams();
-  if (q) queryParams.set('q', q);
-  if (type) queryParams.set('type', type);
-  if (category) queryParams.set('category', category);
-  
-  const queryStr = queryParams.toString();
-  const url = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/items${queryStr ? `?${queryStr}` : ''}`;
-  
-  let items = [];
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (res.ok) {
-      items = await res.json();
-    }
-  } catch (err) {
-    console.error('Failed to fetch items');
+  let sql = `
+    SELECT i.*, u.name as reporterName 
+    FROM Item i
+    LEFT JOIN User u ON i.reporterId = u.id
+    WHERE i.status = 'PUBLISHED'
+  `;
+  const sqlParams: any[] = [];
+
+  if (q) {
+    sql += ` AND (i.name LIKE ? OR i.description LIKE ? OR i.location LIKE ?)`;
+    const search = `%${q}%`;
+    sqlParams.push(search, search, search);
+  }
+  if (type) {
+    sql += ` AND i.type = ?`;
+    sqlParams.push(type);
+  }
+  if (category) {
+    sql += ` AND i.category = ?`;
+    sqlParams.push(category);
   }
 
+  sql += ` ORDER BY i.createdAt DESC`;
+
+  const items = await queryAll(sql, sqlParams);
+
+  // Calculate stats based on all items
+  const foundItemsCount = items.filter((i: any) => i.type === 'FOUND').length;
+  const lostItemsCount = items.filter((i: any) => i.type === 'LOST').length;
+  const returnedItemsCount = items.filter((i: any) => i.status === 'RETURNED').length;
+
   return (
-    <div className="container" style={{ paddingTop: '2rem' }}>
-      <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-        <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem', color: 'var(--text-primary)', letterSpacing: '-0.04em' }}>Lost & Found</h1>
-        <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>
-          Search for lost items or see what others have found across the institute campus.
-        </p>
-      </div>
+    <div className="page">
+      <main>
+        {/* HERO SECTION */}
+        <section className="hero">
+          <div className="hero-badge">🎓 SE VLabs Institute</div>
+          <h1>Lost & <span>Found</span></h1>
+          <p>A centralized digital platform to report lost items, register found items, and submit claim requests within the campus.</p>
+          <div className="hero-actions">
+            <a href="#search-section" className="btn btn-primary">Search Items</a>
+            <Link href="/post-item?type=LOST" className="btn btn-outline">Report an Item</Link>
+          </div>
+        </section>
 
-      {/* Search & Filter Bar */}
-      <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '4rem', background: 'transparent', boxShadow: 'none' }}>
-        <form className="search-form" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Search Query</label>
-            <input type="text" name="q" defaultValue={q} placeholder="Item name, description, location..." />
+        {/* STATS BAR */}
+        <div className="stats-bar">
+          <div className="stat-item">
+            <div className="stat-number">{foundItemsCount}</div>
+            <div className="stat-label">Items Found</div>
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Type</label>
-            <select name="type" defaultValue={type}>
-              <option value="">All Items</option>
-              <option value="LOST">Lost Items</option>
-              <option value="FOUND">Found Items</option>
-            </select>
+          <div className="stat-item">
+            <div className="stat-number">{lostItemsCount}</div>
+            <div className="stat-label">Items Lost</div>
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Category</label>
-            <select name="category" defaultValue={category}>
-              <option value="">All Categories</option>
-              <option value="Electronics">Electronics</option>
-              <option value="Documents">Documents/ID</option>
-              <option value="Accessories">Accessories</option>
-              <option value="Stationery">Stationery</option>
-              <option value="Other">Other</option>
-            </select>
+          <div className="stat-item">
+            <div className="stat-number">{returnedItemsCount}</div>
+            <div className="stat-label">Successfully Returned</div>
           </div>
-          <button type="submit" className="btn btn-primary" style={{ height: '46px' }}>Search</button>
-        </form>
-      </div>
+        </div>
 
-      {/* Items Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-        {items.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-            <h3>No items found</h3>
-            <p>Try adjusting your search filters.</p>
+        {/* SEARCH SECTION */}
+        <section className="search-section" id="search-section">
+          <div className="search-wrap">
+            <div className="search-title">Search Directory</div>
+            <form className="search-row" method="GET">
+              <div className="search-input-wrap">
+                <span className="search-icon">🔍</span>
+                <input type="text" name="q" className="search-input" placeholder="What are you looking for?" defaultValue={q} />
+              </div>
+              <select name="type" className="search-select" defaultValue={type}>
+                <option value="">All Types</option>
+                <option value="LOST">Lost Items</option>
+                <option value="FOUND">Found Items</option>
+              </select>
+              <select name="category" className="search-select" defaultValue={category}>
+                <option value="">All Categories</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Documents">Documents/ID</option>
+                <option value="Accessories">Accessories</option>
+                <option value="Stationery">Stationery</option>
+                <option value="Other">Other</option>
+              </select>
+              <button type="submit" className="btn btn-primary">Search</button>
+            </form>
           </div>
-        ) : (
-          items.map((item: any) => (
-            <Link href={`/item/${item.id}`} key={item.id} className="glass-panel item-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', transition: 'var(--transition)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <span style={{ 
-                  padding: '0.15rem 0.5rem', 
-                  borderRadius: '4px', 
-                  fontSize: '0.7rem', 
-                  fontWeight: 600,
-                  border: item.type === 'LOST' ? '1px solid var(--danger)' : '1px solid var(--success)',
-                  color: item.type === 'LOST' ? 'var(--danger)' : 'var(--success)',
-                  letterSpacing: '0.05em'
-                }}>
-                  {item.type}
-                </span>
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{new Date(item.date).toLocaleDateString()}</span>
+        </section>
+
+        {/* TABS (Handled by Search Params in Next.js, but mapping visual style) */}
+        <div className="tabs">
+          <Link href="/?type=" className={`tab ${!type ? 'active' : ''}`}>All Items</Link>
+          <Link href="/?type=LOST" className={`tab ${type === 'LOST' ? 'active' : ''}`}>Lost</Link>
+          <Link href="/?type=FOUND" className={`tab ${type === 'FOUND' ? 'active' : ''}`}>Found</Link>
+        </div>
+
+        {/* ITEMS GRID */}
+        <section className="items-section">
+          <div className="items-container">
+            <div className="items-header">
+              <div className="items-count">Showing <strong>{items.length}</strong> items</div>
+            </div>
+            
+            {items.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📂</div>
+                <div className="empty-title">No items found</div>
+                <div className="empty-desc">Try adjusting your search filters.</div>
               </div>
-              
-              {item.imagePath && (
-                <div style={{ width: '100%', height: '150px', background: 'var(--bg-secondary)', borderRadius: '0.5rem', marginBottom: '1rem', overflow: 'hidden' }}>
-                  <img src={item.imagePath} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-              )}
-              
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>{item.name}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem', flex: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {item.description}
-              </p>
-              
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
-                <div>📍 {item.location}</div>
-                <div>🏷️ {item.category}</div>
-              </div>
-            </Link>
-          ))
-        )}
-      </div>
-      
-      <style>{`
-        .item-card:hover {
-          transform: translateY(-4px);
-          border-color: var(--accent-primary);
-        }
-      `}</style>
+            ) : (
+              <div className="items-grid">
+              {items.map((item: any) => (
+                <Link href={`/item/${item.id}`} key={item.id} className={`item-card ${item.type.toLowerCase()}`}>
+                  {item.imagePath && (
+                    <div className="item-card-image">
+                      <img src={item.imagePath} alt={item.name} />
+                    </div>
+                  )}
+                  <div style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <span className={`item-badge badge-${item.type}`}>{item.type}</span>
+                      <span className={`item-badge badge-${item.status}`} style={{ opacity: 0.8 }}>{item.status.replace('_', ' ')}</span>
+                    </div>
+                    <div className="item-title">{item.name}</div>
+                    <div className="item-desc">{item.description}</div>
+                    <div className="item-meta">
+                      <div className="item-meta-tag">📍 {item.location}</div>
+                      <div className="item-meta-tag">🏷️ {item.category}</div>
+                    </div>
+                    <div className="item-footer">
+                      <div className="item-date">{new Date(item.date).toLocaleDateString()}</div>
+                      <div style={{ color: 'var(--blue)', fontSize: '12px', fontWeight: 600 }}>View Details →</div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            )}
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

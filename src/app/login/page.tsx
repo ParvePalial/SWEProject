@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 function LoginContent() {
   const router = useRouter();
@@ -36,7 +37,7 @@ function LoginContent() {
 
       if (res.ok) {
         router.push('/dashboard');
-        router.refresh(); // Refresh layout to update navbar session state
+        router.refresh();
       } else {
         setError(result.error || 'Login failed');
         if (result.requireSecurityCheck) {
@@ -51,39 +52,53 @@ function LoginContent() {
   };
 
   return (
-    <div className="glass-panel" style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem' }}>
-      <h2>Welcome Back</h2>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Login to your LFMS account.</p>
+    <div className="page">
+      <main className="form-page">
+        <div className="form-card">
+          <div className="form-header">
+            <div className="form-icon">🔐</div>
+            <h2>Welcome Back</h2>
+            <p>Login to your SE VLabs account</p>
+          </div>
+          
+          <div className="form-body">
+            {msg && <div className="alert alert-success">{msg}</div>}
+            {error && <div className="alert alert-error">{error}</div>}
 
-      {msg && <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', borderRadius: '0.5rem' }}>{msg}</div>}
-      {error && <div className="form-error" style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '0.5rem' }}>{error}</div>}
-
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label className="form-label">Email Address</label>
-          <input type="email" name="email" required placeholder="john@institute.edu" />
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label className="form-label">Email Address <span>*</span></label>
+                <input type="email" name="email" className={`form-control ${error ? 'error' : ''}`} placeholder="e.g., student@institute.edu" required />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">Password <span>*</span></label>
+                <input type="password" name="password" className={`form-control ${error ? 'error' : ''}`} placeholder="••••••••" required />
+                <div style={{ textAlign: 'right', marginTop: '6px' }}>
+                  <a href="#" style={{ fontSize: '12px', color: 'var(--blue)', textDecoration: 'none' }}>Forgot password?</a>
+                </div>
+              </div>
+              
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
+                {loading ? 'Logging in...' : 'Sign In'}
+              </button>
+              
+              <hr className="form-divider" />
+              
+              <div className="form-footer">
+                Don't have an account? <Link href="/register">Register here</Link>
+              </div>
+            </form>
+          </div>
         </div>
-
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input type="password" name="password" required placeholder="••••••••" />
-        </div>
-
-        <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-      
-      <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem' }}>
-        Don't have an account? <a href="/register" style={{ color: 'var(--accent-primary)' }}>Register here</a>
-      </p>
+      </main>
     </div>
   );
 }
 
 export default function Login() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="page"><main className="form-page"><div className="spinner"></div></main></div>}>
       <LoginContent />
     </Suspense>
   );

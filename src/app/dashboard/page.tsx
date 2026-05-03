@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { queryAll } from '@/lib/sqlite';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -11,83 +11,143 @@ export default async function UserDashboard() {
   }
 
   // Fetch items reported by the user
-  const reportedItems = await prisma.item.findMany({
-    where: { reporterId: session.userId },
-    orderBy: { createdAt: 'desc' }
-  });
+  const reportedItems: any[] = await queryAll(
+    'SELECT * FROM Item WHERE reporterId = ? ORDER BY createdAt DESC',
+    [session.userId]
+  );
 
   // Fetch claims made by the user
-  const claims = await prisma.claim.findMany({
-    where: { claimerId: session.userId },
-    include: { item: true },
-    orderBy: { createdAt: 'desc' }
+  const claims: any[] = await queryAll(`
+    SELECT c.*, i.name as itemName 
+    FROM Claim c 
+    JOIN Item i ON c.itemId = i.id 
+    WHERE c.claimerId = ? 
+    ORDER BY c.createdAt DESC
+  `, [session.userId]);
+
+  // Map for UI compatibility
+  claims.forEach(c => {
+    c.item = { name: c.itemName };
   });
 
-  return (
-    <div className="container" style={{ paddingTop: '2rem' }}>
-      <h1 style={{ marginBottom: '2rem' }}>My Dashboard</h1>
+  const foundItemsCount = reportedItems.filter(i => i.type === 'FOUND').length;
+  const lostItemsCount = reportedItems.filter(i => i.type === 'LOST').length;
 
-      <div style={{ display: 'grid', gap: '3rem' }}>
-        
-        {/* User's Posts */}
-        <section>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
-            <h2>Items I Reported</h2>
-            <Link href="/post-item" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>+ Report Item</Link>
+  return (
+    <div className="page dashboard-layout">
+      <aside className="sidebar">
+        <div className="sidebar-label">Main Menu</div>
+        <Link href="/dashboard" className="sidebar-item active">
+          <span className="icon">📊</span> Overview
+        </Link>
+        <Link href="/post-item?type=LOST" className="sidebar-item">
+          <span className="icon">🔍</span> Report Lost Item
+        </Link>
+        <Link href="/post-item?type=FOUND" className="sidebar-item">
+          <span className="icon">📢</span> Register Found Item
+        </Link>
+      </aside>
+
+      <main className="dashboard-main">
+        <h1 className="dashboard-title">User Dashboard</h1>
+        <p className="dashboard-subtitle">Manage your reported items and claims.</p>
+
+        {/* Stats */}
+        <div className="stat-cards">
+          <div className="stat-card blue">
+            <div className="stat-card-icon">📁</div>
+            <div className="stat-card-number">{reportedItems.length}</div>
+            <div className="stat-card-label">Total Posts</div>
+          </div>
+          <div className="stat-card red">
+            <div className="stat-card-icon">🔍</div>
+            <div className="stat-card-number">{lostItemsCount}</div>
+            <div className="stat-card-label">Items Lost</div>
+          </div>
+          <div className="stat-card green">
+            <div className="stat-card-icon">📢</div>
+            <div className="stat-card-number">{foundItemsCount}</div>
+            <div className="stat-card-label">Items Found</div>
+          </div>
+          <div className="stat-card gold">
+            <div className="stat-card-icon">📝</div>
+            <div className="stat-card-number">{claims.length}</div>
+            <div className="stat-card-label">Total Claims</div>
+          </div>
+        </div>
+
+        {/* Claims Table */}
+        <div className="data-table-wrap">
+          <div className="data-table-header">
+            <h3 className="data-table-title">My Claims</h3>
+          </div>
+          {claims.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📝</div>
+              <div className="empty-title">No claims found</div>
+              <div className="empty-desc">You haven't claimed any items yet.</div>
+            </div>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Date Claimed</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {claims.map(claim => (
+                  <tr key={claim.id}>
+                    <td style={{ fontWeight: 600, color: 'var(--navy)' }}>{claim.item.name}</td>
+                    <td>{new Date(claim.createdAt).toLocaleDateString()}</td>
+                    <td><span className={`item-badge badge-${claim.status}`}>{claim.status}</span></td>
+                    <td>
+                      <div className="action-btns">
+                        <Link href={`/item/${claim.itemId}`} className="btn btn-outline-dark btn-xs">View Item</Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* User Posts Grid */}
+        <div className="data-table-wrap" style={{ background: 'transparent', border: 'none', overflow: 'visible' }}>
+          <div className="data-table-header" style={{ padding: '0 0 16px', borderBottom: '1px solid var(--border)', marginBottom: '24px' }}>
+            <h3 className="data-table-title">My Posts</h3>
           </div>
           
           {reportedItems.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>You haven't reported any items yet.</p>
+            <div className="empty-state" style={{ background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)' }}>
+              <div className="empty-icon">📁</div>
+              <div className="empty-title">No posts found</div>
+              <div className="empty-desc">You haven't reported any items yet.</div>
+            </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
               {reportedItems.map(item => (
-                <Link href={`/item/${item.id}`} key={item.id} className="glass-panel item-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <strong>{item.name}</strong>
-                    <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '1rem', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
-                      {item.type}
-                    </span>
+                <Link href={`/item/${item.id}`} key={item.id} className={`item-card ${item.type.toLowerCase()}`}>
+                  <div>
+                    <span className={`item-badge badge-${item.type}`}>{item.type}</span>
+                    <span className={`item-badge badge-${item.status}`} style={{ marginLeft: '6px' }}>{item.status.replace('_', ' ')}</span>
                   </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                    Status: <strong style={{ color: item.status === 'PUBLISHED' ? 'var(--success)' : 'inherit' }}>{item.status}</strong>
+                  <div className="item-title">{item.name}</div>
+                  <div className="item-desc">{item.description}</div>
+                  <div className="item-footer">
+                    <div className="item-date">{new Date(item.date).toLocaleDateString()}</div>
+                    <div style={{ color: 'var(--blue)', fontSize: '12px', fontWeight: 600 }}>Manage →</div>
                   </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{new Date(item.date).toLocaleDateString()}</div>
                 </Link>
               ))}
             </div>
           )}
-        </section>
+        </div>
 
-        {/* User's Claims */}
-        <section>
-          <h2 style={{ paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>My Claims</h2>
-          {claims.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>You haven't claimed any items yet.</p>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-              {claims.map(claim => (
-                <div key={claim.id} className="glass-panel" style={{ padding: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}><Link href={`/item/${claim.item.id}`} style={{ color: 'var(--accent-primary)' }}>{claim.item.name}</Link></h3>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{new Date(claim.createdAt).toLocaleDateString()}</span>
-                    <span style={{ 
-                      padding: '0.25rem 0.75rem', 
-                      borderRadius: '1rem', 
-                      fontSize: '0.75rem', 
-                      fontWeight: 600,
-                      backgroundColor: claim.status === 'APPROVED' ? 'rgba(16, 185, 129, 0.2)' : claim.status === 'REJECTED' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                      color: claim.status === 'APPROVED' ? 'var(--success)' : claim.status === 'REJECTED' ? 'var(--danger)' : 'var(--warning)'
-                    }}>
-                      {claim.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-      </div>
+      </main>
     </div>
   );
 }

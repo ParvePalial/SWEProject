@@ -75,19 +75,63 @@ The system functionality was captured using Use Case scenarios mapping actors (S
 \begin{itemize}
     \item \textbf{UC1 - Register}: Allows new users to create accounts securely.
     \item \textbf{UC2 - Login}: Authenticates users, featuring an \textit{«extend»} relationship for handling security questions upon 3 consecutive failed attempts.
-    \item \textbf{UC4/UC5 - Post Items}: Allows reporting lost or found items. Found items are marked pending until an \textit{«include»} Admin Verification step is completed.
+    \item \textbf{UC3 - Search Items}: Guest and Registered users can browse the directory.
+    \item \textbf{UC4 - Post Lost Item}: Logged-in users report items they lost.
+    \item \textbf{UC5 - Register Found Item}: Logged-in users report found items.
+    \item \textbf{UC6 - Admin Verification}: Admin reviews and publishes/rejects found items (\textit{«include»} in the publication flow).
+    \item \textbf{UC7 - Submit Claim}: Owner provides proof for a found item.
+    \item \textbf{UC8 - Approve Claim}: Admin verifies proof and marks item as returned.
 \end{itemize}
 
-\subsection{Entity Relationship (ER) Model}
-The database schema involves three primary entities:
-\begin{enumerate}
-    \item \textbf{User}: Stores credentials (hashed passwords), roles, and security questions.
-    \item \textbf{Item}: Stores details for both Lost and Found entries, unifying them with a \texttt{type} discriminator and a \texttt{status} flag.
-    \item \textbf{Claim}: Associates a User with a Found Item, storing proof of ownership details and approval status.
-\end{enumerate}
+\subsection{State Transition Table}
+The lifecycle of a "Found Item" is managed through the following state transitions:
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|l|X|}
+        \hline
+        \textbf{Initial State} & \textbf{Event} & \textbf{Next State} \\
+        \hline
+        None & User Reports Item & PENDING\_VERIFICATION \\
+        \hline
+        PENDING\_VERIFICATION & Admin Approves & PUBLISHED \\
+        \hline
+        PUBLISHED & User Submits Claim & CLAIM\_PENDING \\
+        \hline
+        CLAIM\_PENDING & Admin Approves Claim & RETURNED \\
+        \hline
+        CLAIM\_PENDING & Admin Rejects Claim & PUBLISHED \\
+        \hline
+    \end{tabularx}
+    \caption{Found Item State Machine}
+\end{table}
 
-\subsection{System Flow}
-The application flow enforces security constraints: Guest users are restricted to the Search interface. Upon logging in, users enter a central Dashboard branching out into Item Posting, Claim Submission, and (if authorized) the Administrative Review portal.
+\subsection{Entity Relationship (ER) Model}
+The database schema involves three primary entities with the following relationships:
+\begin{itemize}
+    \item \textbf{User (1) $\rightarrow$ Item (N)}: A user can report multiple lost or found items.
+    \item \textbf{User (1) $\rightarrow$ Claim (N)}: A user can submit multiple claims for different found items.
+    \item \textbf{Item (1) $\rightarrow$ Claim (N)}: A single found item can have multiple competing claims which are reviewed by the admin.
+\end{itemize}
+\begin{figure}[H]
+    \centering
+    \fbox{
+        \begin{minipage}{0.8\textwidth}
+            \centering
+            \textbf{[User]} ---owns--- \textbf{[Item]}\\
+            \textbf{[User]} ---submits--- \textbf{[Claim]}\\
+            \textbf{[Item]} ---receives--- \textbf{[Claim]}
+        \end{minipage}
+    }
+    \caption{Conceptual ER Model Overview}
+\end{figure}
+
+\subsection{System Architecture}
+The system follows a \textbf{Model-View-Controller (MVC)} pattern implemented via the Next.js framework:
+\begin{itemize}
+    \item \textbf{Model}: Prisma Schemas (SQLite)
+    \item \textbf{View}: React Components (Next.js App Router)
+    \item \textbf{Controller}: Next.js API Routes and Server Actions
+\end{itemize}
 
 \section{Functional Requirements}
 \begin{table}[H]

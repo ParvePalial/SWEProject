@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  name               String
+  email              String   @unique
+  passwordHash       String
+  role               String   @default("USER") // USER, ADMIN
+  securityQuestion   String
+  securityAnswerHash String
+  loginAttempts      Int      @default(0)
+  isSuspended        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  reportedItems      Item[]
+  claims             Claim[]
+}
+
+model Item {
+  id          String   @id @default(uuid())
+  type        String // LOST, FOUND
+  name        String
+  description String
+  category    String
+  location    String
+  date        String // ISO date string
+  status      String   @default("PENDING_VERIFICATION") // PENDING_VERIFICATION, PUBLISHED, CLAIMED, RETURNED
+  imagePath   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reporterId String
+  reporter   User    @relation(fields: [reporterId], references: [id])
+  claims     Claim[]
+}
+
+model Claim {
+  id           String   @id @default(uuid())
+  itemId       String
+  item         Item     @relation(fields: [itemId], references: [id])
+  claimerId    String
+  claimer      User     @relation(fields: [claimerId], references: [id])
+  proofDetails String
+  status       String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

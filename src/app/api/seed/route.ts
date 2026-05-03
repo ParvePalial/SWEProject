@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db.server';
 import bcrypt from 'bcrypt';
 
 export async function GET() {

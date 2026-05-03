@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
+import { queryOne, queryRun, queryAll } from '@/lib/sqlite';
+import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if item exists and is a found item
-    const item = await prisma.item.findUnique({ where: { id: itemId } });
+    const item: any = await queryOne('SELECT * FROM Item WHERE id = ?', [itemId]);
     if (!item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
@@ -26,28 +27,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Prevent duplicate claims from same user for same item
-    const existingClaim = await prisma.claim.findFirst({
-      where: { itemId, claimerId: session.userId }
-    });
+    const existingClaim = await queryOne('SELECT id FROM Claim WHERE itemId = ? AND claimerId = ?', [itemId, session.userId]);
 
     if (existingClaim) {
       return NextResponse.json({ error: 'You have already submitted a claim for this item.' }, { status: 400 });
     }
 
-    const claim = await prisma.claim.create({
-      data: {
-        itemId,
-        claimerId: session.userId,
-        proofDetails,
-        status: 'PENDING'
-      }
-    });
+    const id = crypto.randomUUID();
+    await queryRun(
+      'INSERT INTO Claim (id, itemId, claimerId, proofDetails, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [id, itemId, session.userId, proofDetails, 'PENDING', new Date().toISOString(), new Date().toISOString()]
+    );
 
-    // Optionally update item status to CLAIMED (if single claim locks it) 
-    // but requirements say "Multiple claims may exist for a single item, but only one can be approved."
-    // So we don't change item status here. Admin handles it.
-
-    return NextResponse.json({ message: 'Claim submitted successfully', claim }, { status: 201 });
+    return NextResponse.json({ message: 'Claim submitted successfully', claimId: id }, { status: 201 });
   } catch (error) {
     console.error('Submit claim error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -62,10 +54,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const claims = await prisma.claim.findMany({
-      where: { claimerId: session.userId },
-      include: { item: true },
-      orderBy: { createdAt: 'desc' }
+    const claims = await queryAll(`
+      SELECT c.*, i.name as itemName 
+      FROM Claim c 
+      JOIN Item i ON c.itemId = i.id 
+      WHERE c.claimerId = ? 
+      ORDER BY c.createdAt DESC
+    `, [session.userId]);
+
+    // Map for UI compatibility
+    claims.forEach((c: any) => {
+      c.item = { name: c.itemName };
     });
 
     return NextResponse.json(claims);

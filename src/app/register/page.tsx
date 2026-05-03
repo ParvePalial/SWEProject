@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function Register() {
   const router = useRouter();
@@ -36,52 +37,67 @@ export default function Register() {
   };
 
   return (
-    <div className="glass-panel" style={{ maxWidth: '500px', margin: '4rem auto', padding: '2rem' }}>
-      <h2>Create an Account</h2>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Join the SE VLabs Institute LFMS.</p>
+    <div className="page">
+      <main className="form-page" style={{ maxWidth: '640px' }}>
+        <div className="form-card">
+          <div className="form-header">
+            <div className="form-icon">🎓</div>
+            <h2>Create an Account</h2>
+            <p>Join the SE VLabs Institute LFMS</p>
+          </div>
+          
+          <div className="form-body">
+            {error && <div className="alert alert-error">{error}</div>}
 
-      {error && <div className="form-error" style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '0.5rem' }}>{error}</div>}
+            <form onSubmit={handleSubmit}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Full Name <span>*</span></label>
+                  <input type="text" name="name" className={`form-control ${error ? 'error' : ''}`} placeholder="John Doe" required />
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Email Address <span>*</span></label>
+                  <input type="email" name="email" className={`form-control ${error ? 'error' : ''}`} placeholder="john@institute.edu" required />
+                  <div className="form-hint">Must be an @institute.edu address</div>
+                </div>
+              </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label className="form-label">Full Name</label>
-          <input type="text" name="name" required placeholder="John Doe" />
+              <div className="form-group">
+                <label className="form-label">Password <span>*</span></label>
+                <input type="password" name="password" className={`form-control ${error ? 'error' : ''}`} placeholder="Create a strong password" required />
+              </div>
+
+              <hr className="form-divider" />
+
+              <div className="form-group">
+                <label className="form-label">Account Recovery Question <span>*</span></label>
+                <select name="securityQuestion" className="form-control" required defaultValue="">
+                  <option value="" disabled>Select a security question...</option>
+                  <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+                  <option value="What is the name of your favorite childhood friend?">What is the name of your favorite childhood friend?</option>
+                  <option value="What city were you born in?">What city were you born in?</option>
+                  <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                </select>
+                <div className="form-hint">Used to recover your account if you forget your password.</div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Recovery Answer <span>*</span></label>
+                <input type="text" name="securityAnswer" className={`form-control ${error ? 'error' : ''}`} placeholder="Your answer" required />
+              </div>
+
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }} disabled={loading}>
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </button>
+              
+              <div className="form-footer">
+                Already have an account? <Link href="/login">Sign in here</Link>
+              </div>
+            </form>
+          </div>
         </div>
-        
-        <div className="form-group">
-          <label className="form-label">Email Address</label>
-          <input type="email" name="email" required placeholder="john@institute.edu" />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input type="password" name="password" required placeholder="••••••••" />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Security Question</label>
-          <select name="securityQuestion" required defaultValue="">
-            <option value="" disabled>Select a question...</option>
-            <option value="What was your childhood nickname?">What was your childhood nickname?</option>
-            <option value="What is the name of your favorite childhood friend?">What is the name of your favorite childhood friend?</option>
-            <option value="What city were you born in?">What city were you born in?</option>
-            <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Security Answer</label>
-          <input type="text" name="securityAnswer" required placeholder="Your answer..." />
-        </div>
-
-        <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
-          {loading ? 'Registering...' : 'Register'}
-        </button>
-      </form>
-      
-      <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem' }}>
-        Already have an account? <a href="/login" style={{ color: 'var(--accent-primary)' }}>Login here</a>
-      </p>
+      </main>
     </div>
   );
 }

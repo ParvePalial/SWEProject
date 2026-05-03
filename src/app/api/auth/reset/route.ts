@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { queryRun } from '@/lib/sqlite';
 import bcrypt from 'bcrypt';
 import { jwtVerify } from 'jose';
 
@@ -29,10 +29,7 @@ export async function POST(req: NextRequest) {
     const userId = payload.userId as string;
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash }
-    });
+    await queryRun('UPDATE User SET passwordHash = ? WHERE id = ?', [passwordHash, userId]);
 
     return NextResponse.json({ message: 'Password reset successful. You can now login.' }, { status: 200 });
   } catch (error) {

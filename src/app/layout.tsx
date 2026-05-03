@@ -16,7 +16,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Navbar />
-        <main className="page-wrapper container">
+        <main>
           {children}
         </main>
       </body>

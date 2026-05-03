@@ -26,20 +26,18 @@ export default function AdminControls({ type, id, itemId }: { type: 'item' | 'cl
 
   if (type === 'item' || type === 'claim') {
     return (
-      <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+      <div className="action-btns">
         <button 
           onClick={() => handleAction('approve')} 
           disabled={isPending}
-          className="btn btn-primary" 
-          style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+          className="btn btn-success btn-xs" 
         >
           {isPending ? '...' : 'Approve'}
         </button>
         <button 
           onClick={() => handleAction('reject')} 
           disabled={isPending}
-          className="btn btn-danger" 
-          style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+          className="btn btn-danger btn-xs" 
         >
           {isPending ? '...' : 'Reject'}
         </button>
@@ -49,14 +47,15 @@ export default function AdminControls({ type, id, itemId }: { type: 'item' | 'cl
 
   if (type === 'user') {
     return (
-      <button 
-        onClick={() => handleAction('reactivate')} 
-        disabled={isPending}
-        className="btn btn-secondary" 
-        style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-      >
-        {isPending ? '...' : 'Reactivate Account'}
-      </button>
+      <div className="action-btns">
+        <button 
+          onClick={() => handleAction('reactivate')} 
+          disabled={isPending}
+          className="btn btn-outline-dark btn-xs" 
+        >
+          {isPending ? '...' : 'Reactivate'}
+        </button>
+      </div>
     );
   }
 

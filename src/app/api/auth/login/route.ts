@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { queryOne, queryRun } from '@/lib/sqlite';
 import bcrypt from 'bcrypt';
 import { login } from '@/lib/auth';
 
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user: any = await queryOne('SELECT * FROM User WHERE email = ?', [email]);
     if (!user) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
@@ -23,10 +23,8 @@ export async function POST(req: NextRequest) {
     const passwordMatch = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordMatch) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { loginAttempts: newAttempts }
-      });
+      const newAttempts = user.loginAttempts + 1;
+      await queryRun('UPDATE User SET loginAttempts = ? WHERE id = ?', [newAttempts, user.id]);
 
       if (newAttempts >= 3) {
         return NextResponse.json({ error: 'Too many failed attempts.', requireSecurityCheck: true }, { status: 403 });
@@ -36,10 +34,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Reset login attempts on success
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { loginAttempts: 0 }
-    });
+    await queryRun('UPDATE User SET loginAttempts = 0 WHERE id = ?', [user.id]);
 
     await login(user.id, user.role);
 
