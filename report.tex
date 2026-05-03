@@ -1,0 +1,136 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{float}
+
+\title{
+    \vspace{2cm}
+    \textbf{Software Engineering Project Report}\\
+    \vspace{1cm}
+    \Large \textbf{Lost \& Found Management System (LFMS)}
+    \vspace{2cm}
+}
+\author{
+    \textbf{Group 9}\\
+    SE VLabs Institute
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+\subsection{Purpose}
+The purpose of this Software Requirements Specification (SRS) and project report is to describe in detail the development and implementation of the Lost \& Found Management System (LFMS). This document specifies the functional and non-functional requirements, architectural concepts, and the technical implementation details of the system.
+
+\subsection{Scope}
+The LFMS is a web-based application designed to manage lost and found items within the institute campus. Currently, lost-and-found activities are managed through manual verbal communication, notice boards, and email, which leads to inefficiencies, mismanagement, and limited transparency. 
+The developed system provides:
+\begin{itemize}
+    \item A centralized digital platform
+    \item User-based reporting of lost and found items
+    \item Administrative verification before publication
+    \item A secure claim request handling and approval system
+\end{itemize}
+
+\subsection{Definitions \& Acronyms}
+\begin{itemize}
+    \item \textbf{LFMS}: Lost \& Found Management System
+    \item \textbf{LAN}: Local Area Network
+    \item \textbf{DSW}: Dean of Student Welfare
+    \item \textbf{SRS}: Software Requirements Specification
+    \item \textbf{Admin}: Authorized officer responsible for verification
+\end{itemize}
+
+\section{Overall Description}
+\subsection{Product Perspective}
+The LFMS is a standalone, web-based application that replaces the current manual and email-based reporting system. It follows a modern Client-Server architecture where users interact via an HTML5 web browser, and the backend server processes requests, handling authentication and database interactions securely.
+
+\subsection{User Classes and Characteristics}
+\begin{itemize}
+    \item \textbf{Student / Registered User}: Can register, log in, post lost items, submit claim requests, and view their dashboard.
+    \item \textbf{Administrator (DSW / Authorized Officer)}: Verifies lost and found posts, approves or rejects claims, manages user accounts (e.g., reactivation), and has full system control privileges.
+    \item \textbf{Guest User (Non-Registered)}: Can browse and search available items but cannot post or claim items.
+\end{itemize}
+
+\subsection{Operating Environment}
+The system is deployed as a web application accessible within the institute LAN. It is fully compatible with modern browsers including Google Chrome, Mozilla Firefox, Safari, and Opera.
+
+\section{System Architecture \& Software Engineering Concepts}
+The project applies fundamental Software Engineering methodologies, utilizing standard UML modeling to capture requirements and system flow.
+
+\subsection{Use Case Modeling}
+The system functionality was captured using Use Case scenarios mapping actors (Student, Admin, Guest) to actions:
+\begin{itemize}
+    \item \textbf{UC1 - Register}: Allows new users to create accounts securely.
+    \item \textbf{UC2 - Login}: Authenticates users, featuring an \textit{«extend»} relationship for handling security questions upon 3 consecutive failed attempts.
+    \item \textbf{UC4/UC5 - Post Items}: Allows reporting lost or found items. Found items are marked pending until an \textit{«include»} Admin Verification step is completed.
+\end{itemize}
+
+\subsection{Entity Relationship (ER) Model}
+The database schema involves three primary entities:
+\begin{enumerate}
+    \item \textbf{User}: Stores credentials (hashed passwords), roles, and security questions.
+    \item \textbf{Item}: Stores details for both Lost and Found entries, unifying them with a \texttt{type} discriminator and a \texttt{status} flag.
+    \item \textbf{Claim}: Associates a User with a Found Item, storing proof of ownership details and approval status.
+\end{enumerate}
+
+\subsection{System Flow}
+The application flow enforces security constraints: Guest users are restricted to the Search interface. Upon logging in, users enter a central Dashboard branching out into Item Posting, Claim Submission, and (if authorized) the Administrative Review portal.
+
+\section{Functional Requirements}
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|X|l|}
+        \hline
+        \textbf{ID} & \textbf{Requirement Description} & \textbf{Priority} \\
+        \hline
+        R1 & \textbf{New User Registration}: Unique user ID generation; hashed passwords. & High \\
+        \hline
+        R2 & \textbf{User Login}: Authentication with 3-attempt lockout and security question reset mechanism. & High \\
+        \hline
+        R3 & \textbf{Search Item}: Search by name, category, location, and date (Open to guests). & High \\
+        \hline
+        R4 & \textbf{Post Lost Item}: Logged-in users can report lost items. & High \\
+        \hline
+        R5 & \textbf{Post Found Item}: Users can report found items; requires Admin verification. & High \\
+        \hline
+        R6 & \textbf{Claim Item}: Users can submit proof to claim a found item. & High \\
+        \hline
+        R7 & \textbf{Admin Approval}: Admin reviews posts, approves/rejects claims. & High \\
+        \hline
+    \end{tabularx}
+    \caption{Functional Requirements Mapping}
+\end{table}
+
+\section{Non-Functional Requirements}
+\begin{itemize}
+    \item \textbf{Performance}: The system easily supports 50+ concurrent users with sub-second response times using modern edge-ready server logic.
+    \item \textbf{Security}: Sensitive data (passwords, security answers) are encrypted using \texttt{bcrypt}. Authentication is maintained via secure HTTP-only JSON Web Tokens (JWT).
+    \item \textbf{Usability}: The frontend was designed using a minimalist and elegant monochromatic theme, focusing on typography and clear accessibility.
+    \item \textbf{Maintainability}: The codebase utilizes a modular, component-based React architecture allowing for rapid future enhancements.
+\end{itemize}
+
+\section{Technical Implementation}
+To fulfill the requirements, modern web development frameworks were utilized:
+\begin{itemize}
+    \item \textbf{Frontend}: HTML5, React, and Next.js utilizing a custom minimalist Vanilla CSS design system.
+    \item \textbf{Backend}: Next.js App Router API Routes serving as the controller layer.
+    \item \textbf{Database}: SQLite integrated with the Prisma Object-Relational Mapper (ORM) for type-safe database queries and automated migrations.
+\end{itemize}
+
+\section{Conclusion}
+The Lost \& Found Management System was successfully developed and deployed as a structured, transparent, and secure solution. By replacing the existing manual and email-based processes with this centralized web portal, the SE VLabs Institute ensures better tracking, faster recovery, strict administrative control, and a vastly improved user experience for its students and staff.
+
+\end{document}

@@ -1,0 +1,60 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.25rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.logoAccent {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.navLinks {
+  display: flex;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+.link {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: var(--transition);
+}
+
+.link:hover, .activeLink {
+  color: var(--text-primary);
+}
+
+.authButtons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .navLinks {
+    display: none;
+  }
+}
